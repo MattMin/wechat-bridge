@@ -1,0 +1,1 @@
+Downloaded files, images, and so on will be placed in this folder.
