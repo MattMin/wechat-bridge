@@ -1,24 +1,44 @@
 import datetime
 import logging
+import re
 
 import config
 from lib import itchat
 from lib.itchat.content import *
+from lib.itchat.storage import User
 
 logger = logging.getLogger('wechat-bridge')
 
+# 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''From: {sender}
 
 Message: {message}
 
-Send Time: {send_time}
+SendTime: {send_time}
 
 Group: {group}
 
-From ID: {from_id}
+Username: {username}
 '''
 
-last_file_name = ''
+# 好友、群聊搜索的返回格式
+friend_format = '''RemarkName: {remark_name}
+NickName: {nick_name}
+Type: {type}
+Username: {username}
+'''
+
+# 搜索的格式
+search_param_pattern = r'/search (.*)'
+
+# 引用的格式
+quote_pattern = r'「.*：([\s\S]*)」\n- - - - - - - - - - - - - - -\n([\s\S]*)'
+
+# 用户名的格式
+username_pattern = r'.*Username: (.*)'
+
+# 文件下载路径的格式
+file_path_pattern = r'download/\d{6}-\d{6}\..*'
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
@@ -26,7 +46,8 @@ def text_forward(msg):
     """
     Forward text messages received by account A to account B.
 
-    If the received message is from account B, then distribute the message to the contacts of account A according to the rules.
+    If the received message is from account B,
+    then distribute the message to the contacts of account A according to the rules.
     :param msg:
     :return:
     """
@@ -37,18 +58,20 @@ def text_forward(msg):
         distribute_text(msg)
         return
     if msg.type != 'Text':
-        itchat.send_raw_msg(msg.msgType, msg.oriContent if '' != msg.oriContent else msg.content, toUserName=account_b.userName)
+        itchat.send_raw_msg(msg.msgType,
+                            msg.oriContent if '' != msg.oriContent else msg.content,
+                            toUserName=account_b.userName)
         itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
                                               message=msg.type,
                                               group='None',
-                                              from_id=msg.user.userName,
+                                              username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
     else:
         itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
                                               message=msg.text,
                                               group='None',
-                                              from_id=msg.user.userName,
+                                              username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
 
@@ -56,7 +79,7 @@ def text_forward(msg):
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isGroupChat=True)
 def group_text_forward(msg):
     """
-    Forward group text messages received by account A to account B.
+    将账户A收到的消息转发给账户B
     :param msg:
     :return:
     """
@@ -67,18 +90,20 @@ def group_text_forward(msg):
         return
 
     if msg.type != 'Text':
-        itchat.send_raw_msg(msg.msgType, msg.oriContent if '' != msg.oriContent else msg.content, toUserName=account_b.userName)
+        itchat.send_raw_msg(msg.msgType,
+                            msg.oriContent if '' != msg.oriContent else msg.content,
+                            toUserName=account_b.userName)
         itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                               message=msg.type,
                                               group=get_group_name(msg),
-                                              from_id=msg.user.userName,
+                                              username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
     else:
         itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                               message=msg.text,
                                               group=get_group_name(msg),
-                                              from_id=msg.user.userName,
+                                              username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
 
@@ -86,8 +111,9 @@ def group_text_forward(msg):
 @itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO])
 def media_forward(msg):
     """
-    Forward files, including images, received by account A to account B.
-    If the received message is from account B, then record the file paths for future use.
+    将账户A收到的媒体文件转发给账户B
+
+    如果消息是账户B发来的，则将文件存储并返回文件路径给账户B
     :param msg:
     :return:
     """
@@ -95,13 +121,14 @@ def media_forward(msg):
     msg.download(download_path)
     account_b = get_account_b_user()
     if msg.user.remarkName == account_b.remarkName:
-        distribute_media(msg)
+        path = cache_media(msg)
+        itchat.send(path, toUserName=account_b.userName)
         return
     itchat.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
     itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
                                           message=msg.type,
                                           group='None',
-                                          from_id=msg.user.userName,
+                                          username=msg.user.userName,
                                           send_time=get_now()),
                 toUserName=account_b.userName)
 
@@ -109,8 +136,9 @@ def media_forward(msg):
 @itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO], isGroupChat=True)
 def group_media_forward(msg):
     """
-    Forward files, including images, received by account A to account B.
-    If the received message is from account B, then save the file path for future use.
+    将账户A收到的媒体文件转发给账户B
+
+    如果消息是账户B发来的，则将文件存储并返回文件路径给账户B
     :param msg:
     :return:
     """
@@ -123,26 +151,64 @@ def group_media_forward(msg):
     itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                           message=msg.type,
                                           group=get_group_name(msg),
-                                          from_id=msg.user.userName,
+                                          username=msg.user.userName,
                                           send_time=get_now()),
                 toUserName=account_b.userName)
 
 
 def distribute_text(msg):
     """
-    todo
     消息以 '/' 开头指的是要执行的命令
         1. /search xxx (根据关键词搜索好友或者群聊), 返回内容有 remarkName, nickName, actualNickName, userName 等
 
     消息包含引用, 则需要解析引用中的内容来分发消息
-        1. 引用中是图片, 则消息内容应该是 From ID, 将 last_file_name 指定的文件发送给 From ID 表示的用户
-        2. 引用中没有图片, 提取引用中的 From ID, 将消息发送给 From ID 表示的用户
+        1. 引用中是图片路径, 则消息内容应该包含 Username, 将 last_file_name 指定的文件发送给 Username 表示的用户
+        2. 引用中没有图片, 提取引用中的 Username, 将消息发送给 Username 表示的用户
     :param msg:
     :return:
     """
+    account_b = get_account_b_user()
+    text = msg.text
+    if re.match(search_param_pattern, text):
+        keyword = re.findall(search_param_pattern, text)[0]
+        if keyword:
+            friends = itchat.search_friends(name=keyword)
+            chatrooms = itchat.search_chatrooms(name=keyword)
+            result = friends + chatrooms
+            if not result:
+                itchat.send('friends or chat room not found', toUserName=account_b.userName)
+            else:
+                for friend in result:
+                    itchat.send(friend_format.format(remark_name=friend.remarkName,
+                                                     nick_name=friend.nickName,
+                                                     username=friend.userName,
+                                                     type='User' if type(friend) is User else 'Group'),
+                                toUserName=account_b.userName)
+        else:
+            return
+    elif re.match(quote_pattern, text):
+        findall = re.findall(quote_pattern, text)[0]
+        quote_msg = findall[0]
+        main_msg = findall[1]
+        if re.match(file_path_pattern, quote_msg):
+            # 引用中是图片路径, 则消息内容应该包含 Username, 将 last_file_name 指定的文件发送给 Username 表示的用户
+            username = re.findall(username_pattern, main_msg)[0]
+            if not username:
+                logger.warning("消息中没有解析出 Username")
+                return
+            itchat.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', quote_msg), username)
+        else:
+            # 引用中没有图片, 提取引用中的 Username, 将消息发送给 Username 表示的用户
+            username = re.findall(username_pattern, quote_msg)[0]
+            if not username:
+                logger.warning("引用消息中没有解析出 Username")
+                return
+            itchat.send(main_msg, username)
+    else:
+        logger.warning("消息不符合格式, 不进行分发")
 
 
-def distribute_media(msg):
+def cache_media(msg):
     """
     save the file path for future use
     :param msg:
@@ -150,8 +216,7 @@ def distribute_media(msg):
     """
     download_path = 'download/' + msg.fileName
     msg.download(download_path)
-    global last_file_name
-    last_file_name = download_path
+    return download_path
 
 
 def get_group_name(msg):
