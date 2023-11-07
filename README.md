@@ -8,7 +8,7 @@ wechat-bridge 可以做以下几件事
 
 ## 准备
 1. 完善项目根目录中 `config.py` 中的配置
-2. 启动命令: `python main.py`
+2. 启动项目: `python main.py`
 3. 使用`账号A`扫码登录即可
 
 ### 配置说明
