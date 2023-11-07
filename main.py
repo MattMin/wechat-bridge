@@ -61,14 +61,14 @@ def text_forward(msg):
         itchat.send_raw_msg(msg.msgType,
                             msg.oriContent if '' != msg.oriContent else msg.content,
                             toUserName=account_b.userName)
-        itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
+        itchat.send(forward_msg_format.format(sender=get_sender(msg),
                                               message=msg.type,
                                               group='None',
                                               username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
     else:
-        itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
+        itchat.send(forward_msg_format.format(sender=get_sender(msg),
                                               message=msg.text,
                                               group='None',
                                               username=msg.user.userName,
@@ -125,7 +125,7 @@ def media_forward(msg):
         itchat.send(path, toUserName=account_b.userName)
         return
     itchat.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
-    itchat.send(forward_msg_format.format(sender=msg.user.remarkName,
+    itchat.send(forward_msg_format.format(sender=get_sender(msg),
                                           message=msg.type,
                                           group='None',
                                           username=msg.user.userName,
@@ -157,6 +157,7 @@ def group_media_forward(msg):
 
 
 def distribute_text(msg):
+    # todo 修改图片的发送逻辑
     """
     消息以 '/' 开头指的是要执行的命令
         1. /search xxx (根据关键词搜索好友或者群聊), 返回内容有 remarkName, nickName, actualNickName, userName 等
@@ -176,7 +177,7 @@ def distribute_text(msg):
             chatrooms = itchat.search_chatrooms(name=keyword)
             result = friends + chatrooms
             if not result:
-                itchat.send('friends or chat room not found', toUserName=account_b.userName)
+                itchat.send('friends or chat rooms not found', toUserName=account_b.userName)
             else:
                 for friend in result:
                     itchat.send(friend_format.format(remark_name=friend.remarkName,
@@ -235,6 +236,11 @@ def add_friend(msg):
     """
     msg.user.verify()
     msg.user.send('Nice to meet you!')
+
+
+def get_sender(msg):
+    remark_name = msg.user.remarkName
+    return remark_name if '' != remark_name else msg.user.nickName
 
 
 def get_account_b_user():
