@@ -34,6 +34,9 @@ Username: {username}
 # 搜索的格式
 search_param_pattern = r'/search (.*)'
 
+# ping
+ping_pattern = r'/ping'
+
 # 引用的格式
 quote_pattern = r'「.*：([\s\S]*)」\n- - - - - - - - - - - - - - -\n([\s\S]*)'
 
@@ -187,8 +190,11 @@ def distribute_text(msg):
                                                      username=friend.userName,
                                                      type='User' if type(friend) is User else 'Group'),
                                 toUserName=account_b.userName)
-        else:
-            return
+
+    elif re.match(ping_pattern, text):
+        # 检查服务是否在运行
+        itchat.send('/pong', toUserName=account_b.userName)
+
     elif re.match(quote_pattern, text):
         findall = re.findall(quote_pattern, text)[0]
         quote_msg = findall[0]
@@ -203,6 +209,7 @@ def distribute_text(msg):
         else:
             # 消息没有文件路径, 提取引用中的 Username, 将消息发送给 Username 表示的用户
             itchat.send(main_msg, username)
+
     else:
         logger.warning("消息不符合格式, 不进行分发")
 
