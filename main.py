@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import re
 
 import config
@@ -8,6 +9,8 @@ from lib.itchat.content import *
 from lib.itchat.storage import User
 
 logger = logging.getLogger('wechat-bridge')
+
+img_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
 
 # 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''From: {sender}
@@ -157,14 +160,13 @@ def group_media_forward(msg):
 
 
 def distribute_text(msg):
-    # todo 修改图片的发送逻辑
     """
     消息以 '/' 开头指的是要执行的命令
         1. /search xxx (根据关键词搜索好友或者群聊), 返回内容有 remarkName, nickName, actualNickName, userName 等
 
     消息包含引用, 则需要解析引用中的内容来分发消息
-        1. 引用中是图片路径, 则消息内容应该包含 Username, 将 last_file_name 指定的文件发送给 Username 表示的用户
-        2. 引用中没有图片, 提取引用中的 Username, 将消息发送给 Username 表示的用户
+        1. 消息内容匹配文件路径格式, 提取引用中的 Username, 将消息内容匹配的文件发送给 Username 表示的用户
+        2. 消息内容不是文件路径格式, 提取引用中的 Username, 将消息发送给 Username 表示的用户
     :param msg:
     :return:
     """
@@ -191,22 +193,29 @@ def distribute_text(msg):
         findall = re.findall(quote_pattern, text)[0]
         quote_msg = findall[0]
         main_msg = findall[1]
-        if re.match(file_path_pattern, quote_msg):
-            # 引用中是图片路径, 则消息内容应该包含 Username, 将 last_file_name 指定的文件发送给 Username 表示的用户
-            username = re.findall(username_pattern, main_msg)[0]
-            if not username:
-                logger.warning("消息中没有解析出 Username")
-                return
-            itchat.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', quote_msg), username)
+        username = re.findall(username_pattern, quote_msg)[0]
+        if not username:
+            logger.warning("消息中没有解析出 Username")
+            return
+        if re.match(file_path_pattern, main_msg):
+            # 消息是文件路径, 将对应的文件发送给 Username 表示的用户
+            itchat.send('@%s@%s' % ('img' if is_img(main_msg) else 'fil', main_msg), username)
         else:
-            # 引用中没有图片, 提取引用中的 Username, 将消息发送给 Username 表示的用户
-            username = re.findall(username_pattern, quote_msg)[0]
-            if not username:
-                logger.warning("引用消息中没有解析出 Username")
-                return
+            # 消息没有文件路径, 提取引用中的 Username, 将消息发送给 Username 表示的用户
             itchat.send(main_msg, username)
     else:
         logger.warning("消息不符合格式, 不进行分发")
+
+
+@itchat.msg_register(FRIENDS)
+def add_friend(msg):
+    """
+    Automatically approve friend requests.
+    :param msg:
+    :return:
+    """
+    msg.user.verify()
+    msg.user.send('Nice to meet you!')
 
 
 def cache_media(msg):
@@ -227,15 +236,9 @@ def get_group_name(msg):
     return group
 
 
-@itchat.msg_register(FRIENDS)
-def add_friend(msg):
-    """
-    Automatically approve friend requests.
-    :param msg:
-    :return:
-    """
-    msg.user.verify()
-    msg.user.send('Nice to meet you!')
+def is_img(file_name):
+    global img_extensions
+    return os.path.splitext(file_name)[1].lower() in img_extensions
 
 
 def get_sender(msg):
