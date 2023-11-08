@@ -1,0 +1,1 @@
+Copy from https://github.com/zhayujie/chatgpt-on-wechat/tree/master/lib/itchat
