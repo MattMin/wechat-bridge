@@ -23,7 +23,7 @@ account_b_remark_name = 'MattMin'
 # 需要转发消息的群白名单, 群名称包含以下关键字即可
 # 如果全部都转发, 可配置成: ['*']
 # 如果都不转发, 可配置成: []
-group_white_list = ['新起点', 'Matt']
+group_white_list = ['测试', '测试1']
 
 
 ```
