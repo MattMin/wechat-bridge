@@ -9,7 +9,7 @@ wechat-bridge 可以做以下几件事
 
 ## 准备
 1. 完善项目根目录中 `config.py` 中的配置
-2. 启动项目: `python main.py`
+2. 启动项目: `nohup python main.py > nohup.log & tail -f nohup.log`
 3. 使用`账号A`扫码登录即可
 
 ### 配置说明
@@ -45,5 +45,5 @@ group_white_list = ['测试', '测试1']
 
 ## TODO
 - [ ] 转发群消息的群白名单
-- [ ] 日志
+- [x] 日志
 - [ ] 接入 TG BOT
