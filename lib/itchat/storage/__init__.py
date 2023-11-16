@@ -66,7 +66,7 @@ class Storage(object):
                 return copy.deepcopy(self.memberList[0]) # my own account
             elif userName: # return the only userName match
                 for m in self.memberList:
-                    if m['UserName'] == userName:
+                    if userName in m['UserName']:
                         return copy.deepcopy(m)
             else:
                 matchDict = {
@@ -79,14 +79,14 @@ class Storage(object):
                 if name: # select based on name
                     contact = []
                     for m in self.memberList:
-                        if any([m.get(k) == name for k in ('RemarkName', 'NickName', 'Alias')]):
+                        if any([name in m.get(k) for k in ('RemarkName', 'NickName', 'Alias')]):
                             contact.append(m)
                 else:
                     contact = self.memberList[:]
                 if matchDict: # select again based on matchDict
                     friendList = []
                     for m in contact:
-                        if all([m.get(k) == v for k, v in matchDict.items()]):
+                        if all([v in m.get(k) for k, v in matchDict.items()]):
                             friendList.append(m)
                     return copy.deepcopy(friendList)
                 else:
@@ -95,7 +95,7 @@ class Storage(object):
         with self.updateLock:
             if userName is not None:
                 for m in self.chatroomList:
-                    if m['UserName'] == userName:
+                    if userName in m['UserName']:
                         return copy.deepcopy(m)
             elif name is not None:
                 matchList = []
@@ -107,7 +107,7 @@ class Storage(object):
         with self.updateLock:
             if userName is not None:
                 for m in self.mpList:
-                    if m['UserName'] == userName:
+                    if userName in m['UserName']:
                         return copy.deepcopy(m)
             elif name is not None:
                 matchList = []
