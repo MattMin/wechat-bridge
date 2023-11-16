@@ -2,4 +2,4 @@
 account_b_remark_name = 'MattMin'
 
 # 需要转发消息的群白名单
-group_white_list = ['测试', '测试1']
+group_white_list = ['*']

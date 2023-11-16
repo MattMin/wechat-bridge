@@ -8,7 +8,12 @@ from lib import itchat
 from lib.itchat.content import *
 from lib.itchat.storage import User
 
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
 logger = logging.getLogger('wechat-bridge')
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 img_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
 
@@ -89,6 +94,11 @@ def group_text_forward(msg):
     :param msg:
     :return:
     """
+    group_name = get_group_name(msg)
+    if not (group_name in config.group_white_list or '*' in config.group_white_list):
+        logger.info(f"群聊 \"{group_name}\" 不在白名单中, 群消息不转发")
+        return
+
     account_b = get_account_b_user()
     if not account_b:
         return
@@ -101,14 +111,14 @@ def group_text_forward(msg):
                             toUserName=account_b.userName)
         itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                               message=msg.type,
-                                              group=get_group_name(msg),
+                                              group=group_name,
                                               username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
     else:
         itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                               message=msg.text,
-                                              group=get_group_name(msg),
+                                              group=group_name,
                                               username=msg.user.userName,
                                               send_time=get_now()),
                     toUserName=account_b.userName)
@@ -148,6 +158,11 @@ def group_media_forward(msg):
     :param msg:
     :return:
     """
+    group_name = get_group_name(msg)
+    if not (group_name in config.group_white_list or '*' in config.group_white_list):
+        logger.info(f"群聊 \"{group_name}\" 不在白名单中, 群消息不转发")
+        return
+
     download_path = 'download/' + msg.fileName
     msg.download(download_path)
     account_b = get_account_b_user()
@@ -156,7 +171,7 @@ def group_media_forward(msg):
     itchat.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
     itchat.send(forward_msg_format.format(sender=msg.actualNickName,
                                           message=msg.type,
-                                          group=get_group_name(msg),
+                                          group=group_name,
                                           username=msg.user.userName,
                                           send_time=get_now()),
                 toUserName=account_b.userName)
@@ -268,5 +283,9 @@ def get_now():
     return current_utc_time + eastern_offset
 
 
-itchat.auto_login(enableCmdQR=2, hotReload=True)
+logger.info(f'账号B: {config.account_b_remark_name}')
+logger.info(f'群聊白名单: {config.group_white_list}')
+
+# itchat.auto_login(enableCmdQR=2, hotReload=True)
+itchat.auto_login(enableCmdQR=2)
 itchat.run(True)

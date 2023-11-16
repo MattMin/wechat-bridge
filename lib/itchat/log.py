@@ -5,11 +5,15 @@ class LogSystem(object):
     showOnCmd = True
     loggingLevel = logging.INFO
     loggingFile = None
+
     def __init__(self):
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
         self.logger = logging.getLogger('itchat')
         self.logger.addHandler(logging.NullHandler())
         self.logger.setLevel(self.loggingLevel)
         self.cmdHandler = logging.StreamHandler()
+        self.cmdHandler.setFormatter(formatter)
         self.fileHandler = None
         self.logger.addHandler(self.cmdHandler)
     def set_logging(self, showOnCmd=True, loggingFile=None,
