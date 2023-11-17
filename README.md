@@ -9,8 +9,9 @@ wechat-bridge 可以做以下几件事
 
 ## 准备
 1. 完善项目根目录中 `config.py` 中的配置
-2. 启动项目: `nohup python main.py > nohup.log & tail -f nohup.log`
-3. 使用`账号A`扫码登录即可
+2. 安装依赖: `pip3 install -r requirements.txt`
+3. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
+4. 使用`账号A`扫码登录即可
 
 ### 配置说明
 ```python
