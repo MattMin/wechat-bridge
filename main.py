@@ -19,14 +19,12 @@ logger.setLevel(logging.INFO)
 img_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
 
 # 账号A 转发到 账号B 的消息格式
-forward_msg_format = '''From: {sender}
-
-Message: {message}
-
-SendTime: {send_time}
-
+forward_msg_format = '''{sender}: {message}
+------------------------------
 Group: {group}
-
+------------------------------
+SendTime: {send_time}
+------------------------------
 Username: {username}
 '''
 
@@ -50,7 +48,7 @@ quote_pattern = r'「.*：([\s\S]*)」\n- - - - - - - - - - - - - - -\n([\s\S]*)
 username_pattern = r'.*Username: (.*)'
 
 # 文件下载路径的格式
-file_path_pattern = r'download/\d{6}-\d{6}\..*'
+file_path_pattern = r'download/.*\..*'
 
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
@@ -287,6 +285,7 @@ def get_now():
 logger.info(f'账号B: {config.account_b_remark_name}')
 logger.info(f'群聊白名单: {config.group_white_list}')
 
+# 调试时使用
 # itchat.auto_login(enableCmdQR=2, hotReload=True)
 itchat.auto_login(enableCmdQR=2)
 itchat.run(True)
