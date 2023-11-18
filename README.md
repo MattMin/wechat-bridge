@@ -8,11 +8,13 @@ wechat-bridge 可以做以下几件事
 3. 搜索好友/群聊: `账号B`通过向`账号A`发送特定格式的消息, 可以搜索`账号A`的好友/群聊
 
 ## 准备
+
+完善项目根目录中 `config.py` 中的配置
+
 ### 使用 Python 直接启动
-1. 完善项目根目录中 `config.py` 中的配置
-2. 安装依赖: `pip3 install -r requirements.txt`
-3. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
-4. 使用`账号A`扫码登录即可
+1. 安装依赖: `pip3 install -r requirements.txt`
+2. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
+3. 使用`账号A`扫码登录即可
 
 ### 使用 Docker
 1. 构建 Docker 镜像: `docker build -t wechat-bridge:1.0 .`
