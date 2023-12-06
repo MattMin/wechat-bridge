@@ -1,6 +1,6 @@
 .idea
 *.iml
 __pycache__
-.venv
+venv
 .DS_Store
 *.png
