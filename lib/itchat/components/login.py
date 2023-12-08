@@ -128,15 +128,18 @@ def get_QR(self, uuid=None, enableCmdQR=False, picDir=None, qrCallback=None):
     qrStorage = io.BytesIO()
     qrCode = QRCode('https://login.weixin.qq.com/l/' + uuid)
     qrCode.png(qrStorage, scale=10)
+
+    # 定义了回调就使用回调方法处理二维码, 否则就写到文件中
     if hasattr(qrCallback, '__call__'):
         qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue())
     else:
         with open(picDir, 'wb') as f:
             f.write(qrStorage.getvalue())
-        if enableCmdQR:
-            utils.print_cmd_qr(qrCode.text(1), enableCmdQR=enableCmdQR)
-        else:
-            utils.print_qr(picDir)
+
+    if enableCmdQR:
+        utils.print_cmd_qr(qrCode.text(1), enableCmdQR=enableCmdQR)
+    else:
+        utils.print_qr(picDir)
     return qrStorage
 
 
