@@ -1,8 +1,12 @@
 #!/usr/bin/python
+import io
 import pickle
 from datetime import datetime
 
 import telebot
+from telebot.types import InputFile
+from lib import itchat
+from util import is_img, is_audio, is_video
 
 API_TOKEN = ''
 bot = telebot.TeleBot(API_TOKEN)
@@ -11,6 +15,7 @@ chat_id_file = 'chat_id.pkl'
 chat_id = 0
 start_time = datetime.now()
 
+# TODO 实现消息分发的基本功能
 
 @bot.message_handler(commands=['info'])
 def echo_info(message):
@@ -42,10 +47,40 @@ def send_welcome(message):
     bot.send_message(chat_id=chat_id, text=f'Chat ID 获取成功: `{chat_id}`', parse_mode='MarkdownV2')
 
 
+@bot.message_handler(commands=['login'])
+def wechat_login(message):
+    itchat.auto_login(enableCmdQR=2, qrCallback=qr_callback)
+
+
+def qr_callback(uuid, status, qrcode):
+    bot.send_photo(chat_id=get_chat_id(),
+                   photo=InputFile(io.BytesIO(qrcode)),
+                   caption=f'请使用微信的账号A扫描二维码进行登录\nQR UUID: {uuid}')
+
+
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
 @bot.message_handler(func=lambda message: True)
 def echo_message(message):
     bot.send_message(chat_id=get_chat_id(), text='hello')
+
+
+def send_file(file_path, caption):
+    """
+    根据文件类型调用不同的发送方法
+    :param file_path: 文件路径
+    :param caption: 文件说明
+    :return:
+    """
+    with open(file_path, 'rb') as f:
+        file = InputFile(f)
+        if is_img(file_path):
+            bot.send_photo(chat_id=get_chat_id(), photo=file, caption=caption)
+        elif is_audio(file_path):
+            bot.send_audio(chat_id=get_chat_id(), audio=file, caption=caption)
+        elif is_video(file_path):
+            bot.send_video(chat_id=get_chat_id(), video=file, caption=caption)
+        else:
+            bot.send_document(chat_id=get_chat_id(), document=file, caption=caption)
 
 
 def save_chat_id(_chat_id):

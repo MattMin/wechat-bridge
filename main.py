@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
-import os
 import re
 
 import config
 from lib import itchat
 from lib.itchat.content import *
 from lib.itchat.storage import User
+from util import is_img
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 handler = logging.StreamHandler()
@@ -16,7 +16,7 @@ logger = logging.getLogger('wechat-bridge')
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-img_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+
 
 # 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''{sender}: {message}
@@ -257,9 +257,6 @@ def get_group_name(msg):
     return group
 
 
-def is_img(file_name):
-    global img_extensions
-    return os.path.splitext(file_name)[1].lower() in img_extensions
 
 
 def get_sender(msg):
