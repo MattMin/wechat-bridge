@@ -16,6 +16,17 @@ chat_id = 0
 start_time = datetime.now()
 
 # TODO 实现消息分发的基本功能
+# TODO 微信 logout 提醒
+
+forward_msg_format = '''{sender}: {message}
+------------------------------
+Group: {group}
+------------------------------
+SendTime: {send_time}
+------------------------------
+Username: {username}
+'''
+
 
 @bot.message_handler(commands=['info'])
 def echo_info(message):
@@ -61,7 +72,11 @@ def qr_callback(uuid, status, qrcode):
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
 @bot.message_handler(func=lambda message: True)
 def echo_message(message):
-    bot.send_message(chat_id=get_chat_id(), text='hello')
+    bot.send_message(chat_id=get_chat_id(), text=forward_msg_format.format(sender=message.from_user.username,
+                                                                           message=message.text,
+                                                                           group='None',
+                                                                           send_time=message.date,
+                                                                           username=message.from_user.id))
 
 
 def send_file(file_path, caption):

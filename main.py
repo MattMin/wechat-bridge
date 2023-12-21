@@ -4,6 +4,7 @@ import logging
 import re
 
 import config
+from dispatcher.DispatcherInterface import get_dispatcher
 from lib import itchat
 from lib.itchat.content import *
 from lib.itchat.storage import User
@@ -50,6 +51,8 @@ username_pattern = r'.*Username: (.*)'
 # 文件下载路径的格式
 file_path_pattern = r'download/.*\..*'
 
+dispatcher = get_dispatcher('', '')
+
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
 def text_forward(msg):
@@ -65,7 +68,7 @@ def text_forward(msg):
     if not account_b:
         return
     if msg.user.remarkName == account_b.remarkName:
-        distribute_text(msg)
+        dispatch_text(msg)
         return
     if msg.type != 'Text':
         itchat.send_raw_msg(msg.msgType,
@@ -176,7 +179,7 @@ def group_media_forward(msg):
                 toUserName=account_b.userName)
 
 
-def distribute_text(msg):
+def dispatch_text(msg):
     """
     消息以 '/' 开头指的是要执行的命令
         1. /search xxx (根据关键词搜索好友或者群聊), 返回内容有 remarkName, nickName, actualNickName, userName 等
