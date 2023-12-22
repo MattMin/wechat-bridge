@@ -4,7 +4,6 @@ import logging
 import re
 
 import config
-from dispatcher.DispatcherInterface import get_dispatcher
 from lib import itchat
 from lib.itchat.content import *
 from lib.itchat.storage import User
@@ -51,8 +50,26 @@ username_pattern = r'.*Username: (.*)'
 # 文件下载路径的格式
 file_path_pattern = r'download/.*\..*'
 
-dispatcher = get_dispatcher('', '')
 
+def get_relay():
+    """
+    根据配置获取分发器
+    :return:
+    """
+    relay_type = config.relay_type
+    if relay_type == "wechat":
+        from relay import WechatRelay
+        return WechatRelay(itchat)
+    elif relay_type == "tg":
+        from relay import TgRelay
+        from tg_bot import bot
+        return TgRelay(bot)
+    else:
+        raise NotImplementedError("Relay not available for type %s" % (dispatcher_type,))
+
+
+relay = get_relay()
+relay.dispatch()
 
 @itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
 def text_forward(msg):
@@ -64,12 +81,13 @@ def text_forward(msg):
     :param msg:
     :return:
     """
-    account_b = get_account_b_user()
-    if not account_b:
-        return
-    if msg.user.remarkName == account_b.remarkName:
-        dispatch_text(msg)
-        return
+    if config.relay_type == 'wechat':
+        account_b = get_account_b_user()
+        if not account_b:
+            return
+        if msg.user.remarkName == account_b.remarkName:
+            dispatch_text(msg)
+            return
     if msg.type != 'Text':
         itchat.send_raw_msg(msg.msgType,
                             msg.oriContent if '' != msg.oriContent else msg.content,
@@ -280,7 +298,6 @@ def get_now():
     current_utc_time = datetime.datetime.utcnow()
     eastern_offset = datetime.timedelta(hours=8)
     return current_utc_time + eastern_offset
-
 
 logger.info(f'账号B: {config.account_b_remark_name}')
 logger.info(f'群聊白名单: {config.group_white_list}')

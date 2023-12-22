@@ -13,13 +13,27 @@ Username: {username}
 '''
 
 
-class DispatcherInterface(ABC):
+class RelayInterface(ABC):
     @abstractmethod
     def dispatch(self, msg):
+        """
+        将消息分发到账号A的好友/群聊
+        :param msg:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def forward(self, msg):
+        """
+        将账号A收到的消息转发到账号B或者TG Bot
+        :param msg:
+        :return:
+        """
         pass
 
 
-class WechatDispatcher(DispatcherInterface):
+class WechatRelay(RelayInterface):
     # 搜索的格式
     search_param_pattern = r'/search (.*)'
     # ping
@@ -47,8 +61,8 @@ class WechatDispatcher(DispatcherInterface):
             """
         account_b = self.get_account_b_user()
         text = msg.text
-        if re.match(WechatDispatcher.search_param_pattern, text):
-            keyword = re.findall(WechatDispatcher.search_param_pattern, text)[0]
+        if re.match(WechatRelay.search_param_pattern, text):
+            keyword = re.findall(WechatRelay.search_param_pattern, text)[0]
             if keyword:
                 friends = self.bot.search_friends(name=keyword)
                 chatrooms = self.bot.search_chatrooms(name=keyword)
@@ -63,19 +77,19 @@ class WechatDispatcher(DispatcherInterface):
                                                            type='User' if type(friend) is User else 'Group'),
                                       toUserName=account_b.userName)
 
-        elif re.match(WechatDispatcher.ping_pattern, text):
+        elif re.match(WechatRelay.ping_pattern, text):
             # 检查服务是否在运行
             self.bot.send('/pong', toUserName=account_b.userName)
 
-        elif re.match(WechatDispatcher.quote_pattern, text):
-            findall = re.findall(WechatDispatcher.quote_pattern, text)[0]
+        elif re.match(WechatRelay.quote_pattern, text):
+            findall = re.findall(WechatRelay.quote_pattern, text)[0]
             quote_msg = findall[0]
             main_msg = findall[1]
-            username = re.findall(WechatDispatcher.username_pattern, quote_msg)[0]
+            username = re.findall(WechatRelay.username_pattern, quote_msg)[0]
             if not username:
                 logger.warning("消息中没有解析出 Username")
                 return
-            if re.match(WechatDispatcher.file_path_pattern, main_msg):
+            if re.match(WechatRelay.file_path_pattern, main_msg):
                 # 消息是文件路径, 将对应的文件发送给 Username 表示的用户
                 self.bot.send('@%s@%s' % ('img' if is_img(main_msg) else 'fil', main_msg), username)
             else:
@@ -84,6 +98,10 @@ class WechatDispatcher(DispatcherInterface):
 
         else:
             logger.warning("消息不符合格式, 不进行分发")
+
+    def forward(self, msg):
+        # todo
+        pass
 
     def get_account_b_user(self):
         account_b_remark_name = config.account_b_remark_name
@@ -94,7 +112,7 @@ class WechatDispatcher(DispatcherInterface):
         return friends[0]
 
 
-class TgDispatcher(DispatcherInterface):
+class TgRelay(RelayInterface):
     def __init__(self, bot):
         self.bot = bot
 
@@ -102,17 +120,7 @@ class TgDispatcher(DispatcherInterface):
         # todo 完善分发的逻辑
         print("Dispatcher dispatching")
 
+    def forward(self, msg):
+        # todo 转发
+        pass
 
-def get_dispatcher(dispatcher_type, bot):
-    """
-    根据配置获取分发器
-    :param dispatcher_type: wechat or tg
-    :param bot: itchat or telebot
-    :return:
-    """
-    if dispatcher_type == "wechat":
-        return WechatDispatcher(bot)
-    elif dispatcher_type == "tg":
-        return TgDispatcher(bot)
-    else:
-        raise NotImplementedError("Dispatcher not available for type %s" % (dispatcher_type,))
