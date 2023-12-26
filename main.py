@@ -110,8 +110,8 @@ logger.info(f'群聊白名单: {config.group_white_list}')
 
 # 调试时使用
 # itchat.auto_login(enableCmdQR=2, hotReload=True)
-itchat.auto_login(enableCmdQR=2)
-itchat.run(True)
+# itchat.auto_login(enableCmdQR=2)
+# itchat.run(True)
 
 if relay_type == "wechat":
     # 调试时使用

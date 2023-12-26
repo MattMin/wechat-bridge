@@ -6,7 +6,7 @@ from datetime import datetime
 import telebot
 from telebot.types import InputFile
 from lib import itchat
-from util import is_img, is_audio, is_video
+from util import is_img, is_audio, is_video, logger
 
 API_TOKEN = ''
 bot = telebot.TeleBot(API_TOKEN)
@@ -39,7 +39,7 @@ def echo_info(message):
 
     bot.send_message(chat_id=message.chat.id,
                      text=f"""\
-*itchat运行状态*: 已登录
+*itchat运行状态*: {get_login_status()}
 *运行时间*: {days}天{hours}小时{minutes}分
 """,
                      parse_mode='MarkdownV2')
@@ -60,13 +60,10 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['login'])
 def wechat_login(message):
-    itchat.auto_login(enableCmdQR=2, qrCallback=qr_callback)
-
-
-def qr_callback(uuid, status, qrcode):
-    bot.send_photo(chat_id=get_chat_id(),
-                   photo=InputFile(io.BytesIO(qrcode)),
-                   caption=f'请使用微信的账号A扫描二维码进行登录\nQR UUID: {uuid}')
+    itchat.auto_login(enableCmdQR=2,
+                      loginCallback=login_call_back,
+                      exitCallback=exit_call_back,
+                      qrCallback=qr_callback)
 
 
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
@@ -125,4 +122,36 @@ def get_chat_id():
     return chat_id if chat_id != 0 else read_chat_id()
 
 
-# bot.infinity_polling()
+def get_login_status():
+    status = itchat.check_login()
+    # 返回 status 描述
+    # status 0 = 未知异常, 200 = 登录成功, 201 = 等待确认登录, 408 = UUID超时
+    if status == '200':
+        return '登录成功'
+    elif status == '201':
+        return '等待确认登录'
+    elif status == '400':
+        return '未登录'
+    elif status == '408':
+        return 'UUID超时'
+    else:
+        return '未知异常'
+
+
+def qr_callback(uuid, status, qrcode):
+    if '0' == status:
+        bot.send_photo(chat_id=get_chat_id(),
+                       photo=InputFile(io.BytesIO(qrcode)),
+                       caption=f'请使用微信的账号A扫描二维码进行登录\nQR UUID: {uuid}')
+    # todo 201 时不要一直发送消息
+    logger.info('当前状态为 %s' % status)
+
+
+def login_call_back(nick_name):
+    logger.info('Login successfully as %s' % nick_name)
+    bot.send_message(chat_id=get_chat_id(), text=f'{nick_name} 登录成功')
+
+
+def exit_call_back(username=''):
+    logger.info('Logout successfully %s' % username)
+    bot.send_message(chat_id=get_chat_id(), text=f'{username} 退出登录')

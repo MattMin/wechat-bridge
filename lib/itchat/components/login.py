@@ -83,7 +83,7 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
     self.show_mobile_login()
     self.get_contact(True)
     if hasattr(loginCallback, '__call__'):
-        r = loginCallback()
+        r = loginCallback(self.storageClass.nickName)
     else:
         # utils.clear_screen()
         if os.path.exists(picDir or config.DEFAULT_QR):
@@ -332,7 +332,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                     time.sleep(1)
         self.logout()
         if hasattr(exitCallback, '__call__'):
-            exitCallback()
+            exitCallback(self.storageClass.userName)
         else:
             logger.info('LOG OUT!')
     if getReceivingFnOnly:
