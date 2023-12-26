@@ -125,4 +125,4 @@ def get_chat_id():
     return chat_id if chat_id != 0 else read_chat_id()
 
 
-bot.infinity_polling()
+# bot.infinity_polling()

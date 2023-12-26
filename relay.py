@@ -3,12 +3,21 @@ from abc import ABC, abstractmethod
 
 import config
 from lib.itchat.storage import User
-from main import logger
-from util import is_img
+from util import is_img, get_group_name, get_sender, get_now, cache_media, logger
 
 friend_format = '''RemarkName: {remark_name}
 NickName: {nick_name}
 Type: {type}
+Username: {username}
+'''
+
+# 账号A 转发到 账号B 的消息格式
+forward_msg_format = '''{sender}: {message}
+------------------------------
+Group: {group}
+------------------------------
+SendTime: {send_time}
+------------------------------
 Username: {username}
 '''
 
@@ -24,10 +33,12 @@ class RelayInterface(ABC):
         pass
 
     @abstractmethod
-    def forward(self, msg):
+    def forward(self, msg, is_group, is_media):
         """
         将账号A收到的消息转发到账号B或者TG Bot
-        :param msg:
+        :param is_media: 是否是媒体文件
+        :param is_group: 是否是群消息
+        :param msg: itchat 消息对象
         :return:
         """
         pass
@@ -99,9 +110,78 @@ class WechatRelay(RelayInterface):
         else:
             logger.warning("消息不符合格式, 不进行分发")
 
-    def forward(self, msg):
-        # todo
-        pass
+    def forward(self, msg, is_group, is_media):
+        account_b = self.get_account_b_user()
+        if is_group:
+            group_name = get_group_name(msg)
+            if is_media:
+                download_path = 'download/' + msg.fileName
+                msg.download(download_path)
+                if msg.user.remarkName == account_b.remarkName:
+                    return
+                self.bot.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
+                self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
+                                                        message=msg.type,
+                                                        group=group_name,
+                                                        username=msg.user.userName,
+                                                        send_time=get_now()),
+                              toUserName=account_b.userName)
+            else:
+                if not account_b:
+                    return
+                if msg.user.remarkName == account_b.remarkName:
+                    return
+
+                if msg.type != 'Text':
+                    self.bot.send_raw_msg(msg.msgType,
+                                          msg.oriContent if '' != msg.oriContent else msg.content,
+                                          toUserName=account_b.userName)
+                    self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
+                                                            message=msg.type,
+                                                            group=group_name,
+                                                            username=msg.user.userName,
+                                                            send_time=get_now()),
+                                  toUserName=account_b.userName)
+                else:
+                    self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
+                                                            message=msg.text,
+                                                            group=group_name,
+                                                            username=msg.user.userName,
+                                                            send_time=get_now()),
+                                  toUserName=account_b.userName)
+        else:
+            if is_media:
+                download_path = 'download/' + msg.fileName
+                msg.download(download_path)
+                if msg.user.remarkName == account_b.remarkName:
+                    path = cache_media(msg)
+                    self.bot.send(path, toUserName=account_b.userName)
+                    return
+                self.bot.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
+                self.bot.send(forward_msg_format.format(sender=get_sender(msg),
+                                                        message=msg.type,
+                                                        group='None',
+                                                        username=msg.user.userName,
+                                                        send_time=get_now()),
+                              toUserName=account_b.userName)
+            else:
+                if msg.type != 'Text':
+                    self.bot.send_raw_msg(msg.msgType,
+                                          msg.oriContent if '' != msg.oriContent else msg.content,
+                                          toUserName=account_b.userName)
+                    self.bot.send(forward_msg_format.format(sender=get_sender(msg),
+                                                            message=msg.type,
+                                                            group='None',
+                                                            username=msg.user.userName,
+                                                            send_time=get_now()),
+                                  toUserName=account_b.userName)
+                else:
+                    self.bot.send(forward_msg_format.format(sender=get_sender(msg),
+                                                            message=msg.text,
+                                                            group='None',
+                                                            username=msg.user.userName,
+                                                            send_time=get_now()),
+                                  toUserName=account_b.userName)
 
     def get_account_b_user(self):
         account_b_remark_name = config.account_b_remark_name
@@ -123,4 +203,3 @@ class TgRelay(RelayInterface):
     def forward(self, msg):
         # todo 转发
         pass
-
