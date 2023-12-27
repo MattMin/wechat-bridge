@@ -114,7 +114,7 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
     await self.show_mobile_login()
     self.get_contact(True)
     if hasattr(loginCallback, '__call__'):
-        r = await loginCallback(self.storageClass.userName)
+        r = await loginCallback(self.storageClass.userName, self.storageClass.nickName)
     else:
         utils.clear_screen()
         if os.path.exists(picDir or config.DEFAULT_QR):
@@ -157,7 +157,7 @@ async def get_QR(self, uuid=None, enableCmdQR=False, picDir=None, qrCallback=Non
     qrCode = QRCode('https://login.weixin.qq.com/l/' + uuid)
     qrCode.png(qrStorage, scale=10)
     if hasattr(qrCallback, '__call__'):
-        await qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue())
+        await qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue(), isLoggedIn=False)
     else:
         with open(picDir, 'wb') as f:
             f.write(qrStorage.getvalue())
@@ -339,7 +339,7 @@ async def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                     time.sleep(1)
         self.logout()
         if hasattr(exitCallback, '__call__'):
-            exitCallback(self.storageClass.userName)
+            exitCallback(self.storageClass.userName, self.storageClass.nickName)
         else:
             logger.info('LOG OUT!')
     if getReceivingFnOnly:

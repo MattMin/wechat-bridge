@@ -1,12 +1,15 @@
 #!/usr/bin/python
 import io
 import pickle
+import re
 from datetime import datetime
 
 import telebot
 from telebot.types import InputFile
+
 from lib import itchat
-from util import is_img, is_audio, is_video, logger
+from lib.itchat.storage import User
+from util import is_img, is_audio, is_video, logger, search_param_pattern, friend_format
 
 API_TOKEN = ''
 bot = telebot.TeleBot(API_TOKEN)
@@ -29,7 +32,7 @@ Username: {username}
 
 
 @bot.message_handler(commands=['info'])
-def echo_info(message):
+def info(message):
     # 计算时间差
     time_delta = datetime.now() - start_time
     # 将时间差转换为天、小时和分钟
@@ -55,7 +58,8 @@ def send_welcome(message):
     global chat_id
     chat_id = message.chat.id
     save_chat_id(chat_id)
-    bot.send_message(chat_id=chat_id, text=f'Chat ID 获取成功: `{chat_id}`', parse_mode='MarkdownV2')
+    bot.send_message(chat_id=chat_id, text=f'Chat ID 获取成功: `{chat_id}`, 使用 `/login` 开始登录',
+                     parse_mode='MarkdownV2')
 
 
 @bot.message_handler(commands=['login'])
@@ -64,6 +68,30 @@ def wechat_login(message):
                       loginCallback=login_call_back,
                       exitCallback=exit_call_back,
                       qrCallback=qr_callback)
+
+
+@bot.message_handler(commands=['logout'])
+def wechat_logout(message):
+    itchat.logout()
+    logger.info('/logout command executed')
+
+
+@bot.message_handler(commands=['search'])
+def search(message):
+    keyword = re.findall(search_param_pattern, message.text)[0]
+    if keyword:
+        friends = itchat.search_friends(name=keyword)
+        chatrooms = itchat.search_chatrooms(name=keyword)
+        result = friends + chatrooms
+        if not result:
+            bot.send_message(chat_id=get_chat_id(), text='friends or chat rooms not found')
+        else:
+            for friend in result:
+                bot.send_message(chat_id=get_chat_id(),
+                                 text=friend_format.format(remark_name=friend.remarkName,
+                                                           nick_name=friend.nickName,
+                                                           username=friend.userName,
+                                                           type='User' if type(friend) is User else 'Group'))
 
 
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
@@ -123,6 +151,7 @@ def get_chat_id():
 
 
 def get_login_status():
+    # todo 此方法会导致微信退出登录
     status = itchat.check_login()
     # 返回 status 描述
     # status 0 = 未知异常, 200 = 登录成功, 201 = 等待确认登录, 408 = UUID超时
@@ -138,20 +167,20 @@ def get_login_status():
         return '未知异常'
 
 
-def qr_callback(uuid, status, qrcode):
+def qr_callback(uuid, status, qrcode, isLoggedIn):
     if '0' == status:
         bot.send_photo(chat_id=get_chat_id(),
                        photo=InputFile(io.BytesIO(qrcode)),
                        caption=f'请使用微信的账号A扫描二维码进行登录\nQR UUID: {uuid}')
-    # todo 201 时不要一直发送消息
-    logger.info('当前状态为 %s' % status)
+    if '201' == status and isLoggedIn is not None:
+        bot.send_message(chat_id=get_chat_id(), text='请在手机上确认')
 
 
-def login_call_back(nick_name):
-    logger.info('Login successfully as %s' % nick_name)
-    bot.send_message(chat_id=get_chat_id(), text=f'{nick_name} 登录成功')
+def login_call_back(username=None, nickname=None):
+    logger.info('Login successfully as %s' % nickname)
+    bot.send_message(chat_id=get_chat_id(), text=f'{nickname} 登录成功')
 
 
-def exit_call_back(username=''):
-    logger.info('Logout successfully %s' % username)
-    bot.send_message(chat_id=get_chat_id(), text=f'{username} 退出登录')
+def exit_call_back(username=None, nickname=None):
+    logger.info('Logout successfully %s' % nickname)
+    bot.send_message(chat_id=get_chat_id(), text=f'{nickname} 退出登录')

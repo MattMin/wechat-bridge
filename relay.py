@@ -3,13 +3,7 @@ from abc import ABC, abstractmethod
 
 import config
 from lib.itchat.storage import User
-from util import is_img, get_group_name, get_sender, get_now, cache_media, logger
-
-friend_format = '''RemarkName: {remark_name}
-NickName: {nick_name}
-Type: {type}
-Username: {username}
-'''
+from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format
 
 # 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''{sender}: {message}
@@ -45,8 +39,6 @@ class RelayInterface(ABC):
 
 
 class WechatRelay(RelayInterface):
-    # 搜索的格式
-    search_param_pattern = r'/search (.*)'
     # ping
     ping_pattern = r'/ping'
     # 引用的格式
@@ -72,8 +64,8 @@ class WechatRelay(RelayInterface):
             """
         account_b = self.get_account_b_user()
         text = msg.text
-        if re.match(WechatRelay.search_param_pattern, text):
-            keyword = re.findall(WechatRelay.search_param_pattern, text)[0]
+        if re.match(search_param_pattern, text):
+            keyword = re.findall(search_param_pattern, text)[0]
             if keyword:
                 friends = self.bot.search_friends(name=keyword)
                 chatrooms = self.bot.search_chatrooms(name=keyword)

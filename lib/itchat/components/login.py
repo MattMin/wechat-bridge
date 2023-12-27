@@ -57,11 +57,12 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
                                     picDir=picDir, qrCallback=qrCallback)
             # logger.info('Please scan the QR code to log in.')
         isLoggedIn = False
+        end_time = time.time() + 60 * 2
         while not isLoggedIn:
             status = self.check_login()
             if hasattr(qrCallback, '__call__'):
                 qrCallback(uuid=self.uuid, status=status,
-                           qrcode=qrStorage.getvalue())
+                           qrcode=qrStorage.getvalue(), isLoggedIn=isLoggedIn)
             if status == '200':
                 isLoggedIn = True
             elif status == '201':
@@ -70,6 +71,12 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
                     isLoggedIn = None
                     time.sleep(7)
                 time.sleep(0.5)
+
+                # 登录确认时间设置为2分钟
+                if time.time() > end_time:
+                    logger.info('Login time out.')
+                    self.isLogging = False
+                    break
             elif status != '408':
                 break
         if isLoggedIn:
@@ -83,7 +90,7 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
     self.show_mobile_login()
     self.get_contact(True)
     if hasattr(loginCallback, '__call__'):
-        r = loginCallback(self.storageClass.nickName)
+        r = loginCallback(self.storageClass.userName, self.storageClass.nickName)
     else:
         # utils.clear_screen()
         if os.path.exists(picDir or config.DEFAULT_QR):
@@ -131,7 +138,7 @@ def get_QR(self, uuid=None, enableCmdQR=False, picDir=None, qrCallback=None):
 
     # 定义了回调就使用回调方法处理二维码, 否则就写到文件中
     if hasattr(qrCallback, '__call__'):
-        qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue())
+        qrCallback(uuid=uuid, status='0', qrcode=qrStorage.getvalue(), isLoggedIn=False)
     else:
         with open(picDir, 'wb') as f:
             f.write(qrStorage.getvalue())
@@ -332,7 +339,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                     time.sleep(1)
         self.logout()
         if hasattr(exitCallback, '__call__'):
-            exitCallback(self.storageClass.userName)
+            exitCallback(self.storageClass.userName, self.storageClass.nickName)
         else:
             logger.info('LOG OUT!')
     if getReceivingFnOnly:

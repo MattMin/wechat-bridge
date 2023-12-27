@@ -15,6 +15,15 @@ img_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
 audio_extensions = ['.mp3', '.wav', '.flac', '.aac', '.ogg']
 video_extensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv']
 
+# 搜索的格式
+search_param_pattern = r'/search (.*)'
+
+friend_format = '''RemarkName: {remark_name}
+NickName: {nick_name}
+Type: {type}
+Username: {username}
+'''
+
 
 def is_img(file_name):
     # global img_extensions
