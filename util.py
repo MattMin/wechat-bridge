@@ -17,6 +17,7 @@ video_extensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv']
 
 # 搜索的格式
 search_param_pattern = r'/search (.*)'
+username_pattern = r'.*Username: (.*)'
 
 friend_format = '''RemarkName: {remark_name}
 NickName: {nick_name}

@@ -1,25 +1,27 @@
 #!/usr/bin/python
 import io
+import os
 import pickle
 import re
 from datetime import datetime
 
 import telebot
+from telebot import apihelper
 from telebot.types import InputFile
 
+import config
 from lib import itchat
 from lib.itchat.storage import User
-from util import is_img, is_audio, is_video, logger, search_param_pattern, friend_format
+from util import is_img, is_audio, is_video, logger, search_param_pattern, friend_format, username_pattern, \
+    img_extensions
 
 API_TOKEN = ''
 bot = telebot.TeleBot(API_TOKEN)
+apihelper.proxy = config.proxy
 
 chat_id_file = 'chat_id.pkl'
 chat_id = 0
 start_time = datetime.now()
-
-# TODO 实现消息分发的基本功能
-# TODO 微信 logout 提醒
 
 forward_msg_format = '''{sender}: {message}
 ------------------------------
@@ -78,7 +80,13 @@ def wechat_logout(message):
 
 @bot.message_handler(commands=['search'])
 def search(message):
-    keyword = re.findall(search_param_pattern, message.text)[0]
+    try:
+        keyword = re.findall(search_param_pattern, message.text)[0]
+    except Exception as e:
+        logger.warn(f'/search 出现异常: {e}')
+        bot.send_message(chat_id=get_chat_id(), text='/search 需要一个参数')
+        return
+
     if keyword:
         friends = itchat.search_friends(name=keyword)
         chatrooms = itchat.search_chatrooms(name=keyword)
@@ -94,14 +102,56 @@ def search(message):
                                                            type='User' if type(friend) is User else 'Group'))
 
 
-# Handle all other messages with content_type 'text' (content_types defaults to ['text'])
-@bot.message_handler(func=lambda message: True)
-def echo_message(message):
-    bot.send_message(chat_id=get_chat_id(), text=forward_msg_format.format(sender=message.from_user.username,
-                                                                           message=message.text,
-                                                                           group='None',
-                                                                           send_time=message.date,
-                                                                           username=message.from_user.id))
+# Handle all text messages
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def dispatch_text_message(message):
+    reply_message = message.reply_to_message
+    username = re.findall(username_pattern, reply_message.text)[0]
+    if not username:
+        logger.warning("消息中没有解析出 Username")
+        bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
+    else:
+        itchat.send(message.text, username)
+
+
+# Handle all image messages
+@bot.message_handler(func=lambda message: True, content_types=['photo'])
+def dispatch_photo_message(message):
+    reply_message = message.reply_to_message
+    username = re.findall(username_pattern, reply_message.text)[0]
+    if not username:
+        logger.warning("消息中没有解析出 Username")
+        bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
+    else:
+        photo_size_list = message.photo
+        file = bot.get_file(photo_size_list[len(photo_size_list) - 1].file_id)
+        download_file = bot.download_file(file.file_path)
+        download_path = f'download/{file.file_id}{os.path.splitext(file.file_path)[1].lower()}'
+        with open(download_path, 'wb') as f:
+            f.write(download_file)
+        logger.info(f'file received, path: {download_path}')
+        itchat.send('@%s@%s' % ('img', download_path), username)
+
+
+# Handle all document messages
+@bot.message_handler(func=lambda message: True, content_types=['document'])
+def dispatch_document_message(message):
+    # 判断是不是图片格式
+    reply_message = message.reply_to_message
+    username = re.findall(username_pattern, reply_message.text)[0]
+    if not username:
+        logger.warning("消息中没有解析出 Username")
+        bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
+    else:
+        # todo 下载文件到本地
+        file = bot.get_file(message.document.file_id)
+        download_file = bot.download_file(file.file_path)
+        file_extension = os.path.splitext(file.file_path)[1].lower()
+        download_path = f'download/{file.file_id}{file_extension}'
+        with open(download_path, 'wb') as f:
+            f.write(download_file)
+        logger.info(f'file received, path: {download_path}')
+        itchat.send('@%s@%s' % ('img' if file_extension in img_extensions else 'fil', download_path), username)
 
 
 def send_file(file_path, caption):
@@ -151,20 +201,11 @@ def get_chat_id():
 
 
 def get_login_status():
-    # todo 此方法会导致微信退出登录
-    status = itchat.check_login()
-    # 返回 status 描述
-    # status 0 = 未知异常, 200 = 登录成功, 201 = 等待确认登录, 408 = UUID超时
-    if status == '200':
-        return '登录成功'
-    elif status == '201':
-        return '等待确认登录'
-    elif status == '400':
-        return '未登录'
-    elif status == '408':
-        return 'UUID超时'
+    friends = itchat.get_friends()
+    if friends:
+        return '已登录'
     else:
-        return '未知异常'
+        return '未登录'
 
 
 def qr_callback(uuid, status, qrcode, isLoggedIn):

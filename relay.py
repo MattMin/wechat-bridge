@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 
 import config
 from lib.itchat.storage import User
-from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format
+from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format, \
+    username_pattern
 
 # 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''{sender}: {message}
@@ -44,7 +45,6 @@ class WechatRelay(RelayInterface):
     # 引用的格式
     quote_pattern = r'「.*：([\s\S]*)」\n- - - - - - - - - - - - - - -\n([\s\S]*)'
     # 用户名的格式
-    username_pattern = r'.*Username: (.*)'
     # 文件下载路径的格式
     file_path_pattern = r'download/.*\..*'
 
@@ -88,7 +88,7 @@ class WechatRelay(RelayInterface):
             findall = re.findall(WechatRelay.quote_pattern, text)[0]
             quote_msg = findall[0]
             main_msg = findall[1]
-            username = re.findall(WechatRelay.username_pattern, quote_msg)[0]
+            username = re.findall(username_pattern, quote_msg)[0]
             if not username:
                 logger.warning("消息中没有解析出 Username")
                 return
