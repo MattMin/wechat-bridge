@@ -53,5 +53,6 @@ group_white_list = ['测试', '测试1']
 ## TODO
 - [x] 转发群消息的群白名单
 - [x] 日志(nohup日志)
-- [ ] 接入 TG BOT
-- [ ] 微信意外退出后通过 TG 通知
+- [x] 接入 TG BOT
+- [x] 微信意外退出后通过 TG 通知
+- [ ] 完善 Readme, 使用说明
