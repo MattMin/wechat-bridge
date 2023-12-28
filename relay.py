@@ -1,20 +1,13 @@
 import re
 from abc import ABC, abstractmethod
 
+from telebot.types import InputFile
+
 import config
 from lib.itchat.storage import User
+from tg_bot import get_chat_id
 from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format, \
-    username_pattern
-
-# 账号A 转发到 账号B 的消息格式
-forward_msg_format = '''{sender}: {message}
-------------------------------
-Group: {group}
-------------------------------
-SendTime: {send_time}
-------------------------------
-Username: {username}
-'''
+    username_pattern, is_audio, is_video, forward_msg_format
 
 
 class RelayInterface(ABC):
@@ -189,9 +182,55 @@ class TgRelay(RelayInterface):
         self.bot = bot
 
     def dispatch(self, **kwargs):
-        # todo 完善分发的逻辑
-        print("Dispatcher dispatching")
-
-    def forward(self, msg):
-        # todo 转发
+        # 在 tg_bot 中分发
         pass
+
+    def forward(self, msg, is_group, is_media):
+        if is_group:
+            sender = msg.actualNickName
+            group_name = get_group_name(msg)
+        else:
+            sender = get_sender(msg)
+            group_name = 'None'
+
+        if is_media:
+            download_path = 'download/' + msg.fileName
+            msg.download(download_path)
+            self.send_file(file_path=download_path,
+                           caption=forward_msg_format.format(sender=sender,
+                                                             message=msg.type,
+                                                             group=group_name,
+                                                             username=msg.user.userName,
+                                                             send_time=get_now()))
+        else:
+            if msg.type != 'Text':
+                content = msg.oriContent if '' != msg.oriContent else msg.content
+                m = f'{msg.type}\n{content}'
+            else:
+                m = f'{msg.text}'
+
+            self.bot.send_message(chat_id=get_chat_id(),
+                                  text=forward_msg_format.format(sender=sender,
+                                                                 message=m,
+                                                                 group=group_name,
+                                                                 username=msg.user.userName,
+                                                                 send_time=get_now()))
+
+    def send_file(self, file_path, caption):
+        """
+        根据文件类型调用不同的发送方法
+        :param file_path: 文件路径
+        :param caption: 文件说明
+        :return:
+        """
+        with open(file_path, 'rb') as f:
+            file = InputFile(f)
+            if is_img(file_path):
+                # 使用 send_document 发送原图
+                self.bot.send_document(chat_id=get_chat_id(), document=file, caption=caption, timeout=120)
+            elif is_audio(file_path):
+                self.bot.send_audio(chat_id=get_chat_id(), audio=file, caption=caption, timeout=120)
+            elif is_video(file_path):
+                self.bot.send_video(chat_id=get_chat_id(), video=file, caption=caption, timeout=120)
+            else:
+                self.bot.send_document(chat_id=get_chat_id(), document=file, caption=caption, timeout=120)

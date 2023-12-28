@@ -104,22 +104,13 @@ def add_friend(msg):
     msg.user.send('Nice to meet you!')
 
 
-logger.info(f'账号B: {config.account_b_remark_name}')
 logger.info(f'群聊白名单: {config.group_white_list}')
-
-
-# 调试时使用
-# itchat.auto_login(enableCmdQR=2, hotReload=True)
-# itchat.auto_login(enableCmdQR=2)
-# itchat.run(True)
-
 if relay_type == "wechat":
     # 调试时使用
     # itchat.auto_login(enableCmdQR=2, hotReload=True)
+    logger.info(f'账号B: {config.account_b_remark_name}')
     itchat.auto_login(enableCmdQR=2)
     itchat.run(True)
 else:
     from tg_bot import bot
-
-    itchat.run(True, blockThread=False)
     bot.infinity_polling()

@@ -25,6 +25,16 @@ Type: {type}
 Username: {username}
 '''
 
+# 账号A 转发到 账号B 的消息格式
+forward_msg_format = '''{sender}: {message}
+------------------------------
+Group: {group}
+------------------------------
+SendTime: {send_time}
+------------------------------
+Username: {username}
+'''
+
 
 def is_img(file_name):
     # global img_extensions

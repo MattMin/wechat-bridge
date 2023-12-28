@@ -12,25 +12,14 @@ from telebot.types import InputFile
 import config
 from lib import itchat
 from lib.itchat.storage import User
-from util import is_img, is_audio, is_video, logger, search_param_pattern, friend_format, username_pattern, \
-    img_extensions
+from util import logger, search_param_pattern, friend_format, username_pattern, img_extensions
 
-API_TOKEN = ''
-bot = telebot.TeleBot(API_TOKEN)
+bot = telebot.TeleBot(config.tg_bot_api_key)
 apihelper.proxy = config.proxy
 
 chat_id_file = 'chat_id.pkl'
 chat_id = 0
 start_time = datetime.now()
-
-forward_msg_format = '''{sender}: {message}
-------------------------------
-Group: {group}
-------------------------------
-SendTime: {send_time}
-------------------------------
-Username: {username}
-'''
 
 
 @bot.message_handler(commands=['info'])
@@ -70,6 +59,7 @@ def wechat_login(message):
                       loginCallback=login_call_back,
                       exitCallback=exit_call_back,
                       qrCallback=qr_callback)
+    itchat.run(True, blockThread=False)
 
 
 @bot.message_handler(commands=['logout'])
@@ -106,7 +96,12 @@ def search(message):
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def dispatch_text_message(message):
     reply_message = message.reply_to_message
-    username = re.findall(username_pattern, reply_message.text)[0]
+    if not reply_message:
+        logger.info('此消息没有引用/回复消息, 不做处理: ' + message.text)
+        return
+
+    username_part = reply_message.text if reply_message.text else reply_message.caption
+    username = re.findall(username_pattern, username_part)[0]
     if not username:
         logger.warning("消息中没有解析出 Username")
         bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
@@ -118,7 +113,12 @@ def dispatch_text_message(message):
 @bot.message_handler(func=lambda message: True, content_types=['photo'])
 def dispatch_photo_message(message):
     reply_message = message.reply_to_message
-    username = re.findall(username_pattern, reply_message.text)[0]
+    if not reply_message:
+        logger.info('此消息没有引用/回复消息, 不做处理')
+        return
+
+    username_part = reply_message.text if reply_message.text else reply_message.caption
+    username = re.findall(username_pattern, username_part)[0]
     if not username:
         logger.warning("消息中没有解析出 Username")
         bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
@@ -138,39 +138,24 @@ def dispatch_photo_message(message):
 def dispatch_document_message(message):
     # 判断是不是图片格式
     reply_message = message.reply_to_message
-    username = re.findall(username_pattern, reply_message.text)[0]
+    if not reply_message:
+        logger.info('此消息没有引用/回复消息, 不做处理, file_name:' + message.document.file_name)
+        return
+
+    username_part = reply_message.text if reply_message.text else reply_message.caption
+    username = re.findall(username_pattern, username_part)[0]
     if not username:
         logger.warning("消息中没有解析出 Username")
         bot.send_message(chat_id=get_chat_id(), text='引用的消息中没有解析出 Username')
     else:
-        # todo 下载文件到本地
         file = bot.get_file(message.document.file_id)
         download_file = bot.download_file(file.file_path)
         file_extension = os.path.splitext(file.file_path)[1].lower()
-        download_path = f'download/{file.file_id}{file_extension}'
+        download_path = f'download/{message.document.file_name}'
         with open(download_path, 'wb') as f:
             f.write(download_file)
         logger.info(f'file received, path: {download_path}')
         itchat.send('@%s@%s' % ('img' if file_extension in img_extensions else 'fil', download_path), username)
-
-
-def send_file(file_path, caption):
-    """
-    根据文件类型调用不同的发送方法
-    :param file_path: 文件路径
-    :param caption: 文件说明
-    :return:
-    """
-    with open(file_path, 'rb') as f:
-        file = InputFile(f)
-        if is_img(file_path):
-            bot.send_photo(chat_id=get_chat_id(), photo=file, caption=caption)
-        elif is_audio(file_path):
-            bot.send_audio(chat_id=get_chat_id(), audio=file, caption=caption)
-        elif is_video(file_path):
-            bot.send_video(chat_id=get_chat_id(), video=file, caption=caption)
-        else:
-            bot.send_document(chat_id=get_chat_id(), document=file, caption=caption)
 
 
 def save_chat_id(_chat_id):
