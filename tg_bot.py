@@ -55,6 +55,9 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['login'])
 def wechat_login(message):
+    global chat_id
+    chat_id = message.chat.id
+    save_chat_id(chat_id)
     itchat.auto_login(enableCmdQR=2,
                       loginCallback=login_call_back,
                       exitCallback=exit_call_back,
