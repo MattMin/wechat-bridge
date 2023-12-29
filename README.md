@@ -31,7 +31,7 @@ relay_type = 'tg'
 
 # tg bot api key, 如何获取请及配置自行 Google
 tg_bot_api_key = ''
-# tg bot 的代理 配置示例: proxy = {'http': 'http://127.0.0.1:7890'}
+# tg bot 的代理 配置示例: proxy = {'https': 'http://127.0.0.1:7890'}
 proxy = None
 
 # 账号B的备注名, 账号A向账号B转发消息时是通过这个备注名来确定账号B的
