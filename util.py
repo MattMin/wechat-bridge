@@ -68,17 +68,6 @@ def get_now():
     return current_utc_time + eastern_offset
 
 
-def cache_media(msg):
-    """
-    save the file path for future use
-    :param msg:
-    :return:
-    """
-    download_path = 'download/' + msg.fileName
-    msg.download(download_path)
-    return download_path
-
-
 # 递归地将XML数据转换为Python对象
 def xml_to_dict(element):
     data = {}

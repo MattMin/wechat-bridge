@@ -1,3 +1,4 @@
+import os
 import re
 from abc import ABC, abstractmethod
 
@@ -6,7 +7,7 @@ from telebot.types import InputFile
 import config
 from lib.itchat.storage import User
 from tg_bot import get_chat_id
-from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format, \
+from util import is_img, get_group_name, get_sender, get_now, logger, search_param_pattern, friend_format, \
     username_pattern, is_audio, is_video, forward_msg_format, xml_to_yaml
 
 
@@ -139,8 +140,7 @@ class WechatRelay(RelayInterface):
                 download_path = 'download/' + msg.fileName
                 msg.download(download_path)
                 if msg.user.remarkName == account_b.remarkName:
-                    path = cache_media(msg)
-                    self.bot.send(path, toUserName=account_b.userName)
+                    self.bot.send(download_path, toUserName=account_b.userName)
                     return
                 self.bot.send('@%s@%s' % ('img' if msg.type == 'Picture' else 'fil', download_path), account_b.userName)
                 self.bot.send(forward_msg_format.format(sender=get_sender(msg),
@@ -195,13 +195,24 @@ class TgRelay(RelayInterface):
 
         if is_media:
             download_path = 'download/' + msg.fileName
-            msg.download(download_path)
-            self.send_file(file_path=download_path,
-                           caption=forward_msg_format.format(sender=sender,
-                                                             message=msg.type,
-                                                             group=group_name,
-                                                             username=msg.user.userName,
-                                                             send_time=get_now()))
+            file_size = os.path.getsize(download_path)
+            if file_size > 0:
+                msg.download(download_path)
+                self.send_file(file_path=download_path,
+                               caption=forward_msg_format.format(sender=sender,
+                                                                 message=msg.type,
+                                                                 group=group_name,
+                                                                 username=msg.user.userName,
+                                                                 send_time=get_now()))
+            else:
+                # 表情包传不过来, file size = 0
+                self.bot.send_message(chat_id=get_chat_id(),
+                                      text=forward_msg_format.format(sender=sender,
+                                                                     message='表情包或空文件',
+                                                                     group=group_name,
+                                                                     username=msg.user.userName,
+                                                                     send_time=get_now()))
+
         else:
             if msg.type != 'Text':
                 content = msg.oriContent if '' != msg.oriContent else msg.content

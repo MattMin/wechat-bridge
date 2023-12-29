@@ -16,13 +16,12 @@ wechat-bridge 可以做以下几件事
 
 1. 安装依赖: `pip3 install -r requirements.txt`
 2. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
-3. 使用`账号A`扫码登录即可
 
 ## 使用 Docker
 
 1. 构建 Docker 镜像: `docker build -t wechat-bridge:1.0 .`
 2. 启动项目: `docker run -d --name wechat-bridge wechat-bridge:1.0`
-3. 查看日志, 扫码登录: `docker logs -f wechat-bridge`
+3. 查看日志: `docker logs -f wechat-bridge`
 
 ## 配置说明
 
@@ -49,6 +48,9 @@ group_white_list = ['测试', '测试1']
 # 使用
 
 ## relay 使用 wechat
+
+### 登录
+项目启动时控制台会输出二维码, 通过扫码登录
 
 ### 搜索好友/群聊
 
