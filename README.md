@@ -12,17 +12,6 @@ wechat-bridge 可以做以下几件事
 
 完善项目根目录中 `config.py` 中的配置
 
-## 使用 Python 直接启动
-
-1. 安装依赖: `pip3 install -r requirements.txt`
-2. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
-
-## 使用 Docker
-
-1. 构建 Docker 镜像: `docker build -t wechat-bridge:1.0 .`
-2. 启动项目: `docker run -d --name wechat-bridge wechat-bridge:1.0`
-3. 查看日志: `docker logs -f wechat-bridge`
-
 ## 配置说明
 
 ```python
@@ -44,6 +33,17 @@ account_b_remark_name = 'MattMin'
 # 如果都不转发, 可配置成: []
 group_white_list = ['测试', '测试1']
 ```
+
+## 使用 Python 直接启动
+
+1. 安装依赖: `pip3 install -r requirements.txt`
+2. 启动项目: `nohup python3 main.py > nohup.log & tail -f nohup.log`
+
+## 使用 Docker
+
+1. 构建 Docker 镜像: `docker build -t wechat-bridge:1.0 .`
+2. 启动项目: `docker run -d --name wechat-bridge wechat-bridge:1.0`
+3. 查看日志: `docker logs -f wechat-bridge`
 
 # 使用
 
