@@ -2,8 +2,8 @@
 # relay_type = 'wechat'
 relay_type = 'tg'
 
-# proxy = {'http': 'http://127.0.0.1:7890'}
-proxy = None
+proxy = {'https': 'http://127.0.0.1:7890'}
+# proxy = None
 # tg bot api key
 tg_bot_api_key = ''
 
