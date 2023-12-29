@@ -7,7 +7,7 @@ import config
 from lib.itchat.storage import User
 from tg_bot import get_chat_id
 from util import is_img, get_group_name, get_sender, get_now, cache_media, logger, search_param_pattern, friend_format, \
-    username_pattern, is_audio, is_video, forward_msg_format
+    username_pattern, is_audio, is_video, forward_msg_format, xml_to_yaml
 
 
 class RelayInterface(ABC):
@@ -205,6 +205,8 @@ class TgRelay(RelayInterface):
         else:
             if msg.type != 'Text':
                 content = msg.oriContent if '' != msg.oriContent else msg.content
+                if msg.type == 'Sharing':
+                    content = xml_to_yaml(content)
                 m = f'{msg.type}\n{content}'
             else:
                 m = f'{msg.text}'
