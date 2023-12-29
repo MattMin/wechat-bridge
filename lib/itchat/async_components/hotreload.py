@@ -79,7 +79,7 @@ async def load_login_status(self, fileDir,
         await self.start_receiving(exitCallback)
         logger.debug('loading login status succeeded.')
         if hasattr(loginCallback, '__call__'):
-            await loginCallback(self.storageClass.userName)
+            await loginCallback(self.storageClass.userName, self.storageClass.nickName)
         return ReturnValue({'BaseResponse': {
             'ErrMsg': 'loading login status succeeded.',
             'Ret': 0, }})
