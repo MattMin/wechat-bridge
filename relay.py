@@ -195,9 +195,9 @@ class TgRelay(RelayInterface):
 
         if is_media:
             download_path = 'download/' + msg.fileName
+            msg.download(download_path)
             file_size = os.path.getsize(download_path)
             if file_size > 0:
-                msg.download(download_path)
                 self.send_file(file_path=download_path,
                                caption=forward_msg_format.format(sender=sender,
                                                                  message=msg.type,
