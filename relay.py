@@ -7,7 +7,7 @@ from telebot.types import InputFile
 import config
 from lib.itchat.storage import User
 from tg_bot import get_chat_id
-from util import is_img, get_group_name, get_sender, get_now, logger, search_param_pattern, friend_format, \
+from util import is_img, get_group_name, get_sender, logger, search_param_pattern, friend_format, \
     username_pattern, is_audio, is_video, forward_msg_format, xml_to_yaml
 
 
@@ -109,8 +109,7 @@ class WechatRelay(RelayInterface):
                 self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
                                                         message=msg.type,
                                                         group=group_name,
-                                                        username=msg.user.userName,
-                                                        send_time=get_now()),
+                                                        username=msg.user.userName),
                               toUserName=account_b.userName)
             else:
                 if not account_b:
@@ -125,15 +124,13 @@ class WechatRelay(RelayInterface):
                     self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
                                                             message=msg.type,
                                                             group=group_name,
-                                                            username=msg.user.userName,
-                                                            send_time=get_now()),
+                                                            username=msg.user.userName),
                                   toUserName=account_b.userName)
                 else:
                     self.bot.send(forward_msg_format.format(sender=msg.actualNickName,
                                                             message=msg.text,
                                                             group=group_name,
-                                                            username=msg.user.userName,
-                                                            send_time=get_now()),
+                                                            username=msg.user.userName),
                                   toUserName=account_b.userName)
         else:
             if is_media:
@@ -146,8 +143,7 @@ class WechatRelay(RelayInterface):
                 self.bot.send(forward_msg_format.format(sender=get_sender(msg),
                                                         message=msg.type,
                                                         group='None',
-                                                        username=msg.user.userName,
-                                                        send_time=get_now()),
+                                                        username=msg.user.userName),
                               toUserName=account_b.userName)
             else:
                 if msg.type != 'Text':
@@ -157,15 +153,13 @@ class WechatRelay(RelayInterface):
                     self.bot.send(forward_msg_format.format(sender=get_sender(msg),
                                                             message=msg.type,
                                                             group='None',
-                                                            username=msg.user.userName,
-                                                            send_time=get_now()),
+                                                            username=msg.user.userName),
                                   toUserName=account_b.userName)
                 else:
                     self.bot.send(forward_msg_format.format(sender=get_sender(msg),
                                                             message=msg.text,
                                                             group='None',
-                                                            username=msg.user.userName,
-                                                            send_time=get_now()),
+                                                            username=msg.user.userName),
                                   toUserName=account_b.userName)
 
     def get_account_b_user(self):
@@ -202,16 +196,14 @@ class TgRelay(RelayInterface):
                                caption=forward_msg_format.format(sender=sender,
                                                                  message=msg.type,
                                                                  group=group_name,
-                                                                 username=msg.user.userName,
-                                                                 send_time=get_now()))
+                                                                 username=msg.user.userName))
             else:
                 # 表情包传不过来, file size = 0
                 self.bot.send_message(chat_id=get_chat_id(),
                                       text=forward_msg_format.format(sender=sender,
                                                                      message='表情包或空文件',
                                                                      group=group_name,
-                                                                     username=msg.user.userName,
-                                                                     send_time=get_now()))
+                                                                     username=msg.user.userName))
 
         else:
             if msg.type != 'Text':
@@ -226,8 +218,7 @@ class TgRelay(RelayInterface):
                                   text=forward_msg_format.format(sender=sender,
                                                                  message=m,
                                                                  group=group_name,
-                                                                 username=msg.user.userName,
-                                                                 send_time=get_now()))
+                                                                 username=msg.user.userName))
 
     def send_file(self, file_path, caption):
         """
