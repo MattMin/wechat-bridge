@@ -28,11 +28,9 @@ Username: {username}
 
 # 账号A 转发到 账号B 的消息格式
 forward_msg_format = '''{sender}: {message}
-------------------------------
+---------------
 Group: {group}
-------------------------------
-SendTime: {send_time}
-------------------------------
+---------------
 Username: {username}
 '''
 
@@ -60,12 +58,6 @@ def get_group_name(msg):
 def get_sender(msg):
     remark_name = msg.user.remarkName
     return remark_name if '' != remark_name else msg.user.nickName
-
-
-def get_now():
-    current_utc_time = datetime.datetime.utcnow()
-    eastern_offset = datetime.timedelta(hours=8)
-    return current_utc_time + eastern_offset
 
 
 # 递归地将XML数据转换为Python对象
